@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Plagiarism Detector</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="brand">
+          <span class="logo-dot"></span>
+          <h1>Plagiarism Detector</h1>
+        </div>
+        <p class="subtitle">
+          Paste student text and compare it against your reference database.
+        </p>
+      </header>
+
+      <main class="app-main">
+        <section class="card input-card">
+          <div class="card-header">
+            <h2>Student Input</h2>
+            <p>Paste the text you want to analyse for plagiarism.</p>
+          </div>
+
+          <form id="detect-form" class="form">
+            <label for="text" class="field-label">
+              Student text
+              <span class="label-hint">(multiple sentences are allowed)</span>
+            </label>
+            <textarea
+              id="text"
+              name="text"
+              class="text-input"
+              rows="8"
+              placeholder="Paste or type the student's answer here..."
+              required
+            ></textarea>
+
+            <div class="form-footer">
+              <button type="submit" class="primary-button" id="run-button">
+                Run detection
+              </button>
+              <span class="status-text" id="status-text"></span>
+            </div>
+          </form>
+        </section>
+
+        <section class="card results-card">
+          <div class="card-header">
+            <h2>Results</h2>
+            <p>Summary and sentence‑level breakdown of the detection.</p>
+          </div>
+
+          <div id="summary" class="summary" hidden>
+            <div class="summary-item">
+              <span class="summary-label">Total sentences</span>
+              <span class="summary-value" id="summary-total">0</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Plagiarized sentences</span>
+              <span class="summary-value" id="summary-plag">0</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Plagiarism percentage</span>
+              <span
+                class="summary-value summary-badge"
+                id="summary-percent"
+              ></span>
+            </div>
+          </div>
+
+          <div id="no-results" class="empty-state">
+            Run detection to see sentence‑level results here.
+          </div>
+
+          <div class="table-wrapper" id="table-wrapper" hidden>
+            <table class="results-table" id="results-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Student sentence</th>
+                  <th>Matched source</th>
+                  <th>Similarity</th>
+                  <th>Category</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+
+      <footer class="app-footer">
+        <span>Backend: FastAPI · Model: Sentence Transformers</span>
+      </footer>
+    </div>
+
+    <script src="main.js"></script>
+  </body>
+</html>
+
