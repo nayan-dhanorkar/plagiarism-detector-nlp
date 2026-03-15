@@ -5,6 +5,7 @@ const statusText = document.getElementById("status-text");
 const scannerBar = document.getElementById("scanner-bar");
 const wordCountEl = document.getElementById("word-count");
 
+// Student File
 const dropZone = document.getElementById("file-drop-zone");
 const fileInput = document.getElementById("file-upload");
 const fileInfo = document.getElementById("file-info");
@@ -13,15 +14,30 @@ const fileSizeSpan = document.getElementById("file-size");
 const removeFileBtn = document.getElementById("remove-file");
 const dropText = document.getElementById("drop-text");
 
+// Reference File
+const refDropZone = document.getElementById("ref-drop-zone");
+const refFileInput = document.getElementById("ref-upload");
+const refFileInfo = document.getElementById("ref-file-info");
+const refFileNameSpan = document.getElementById("ref-file-name");
+const refFileSizeSpan = document.getElementById("ref-file-size");
+const refRemoveFileBtn = document.getElementById("ref-remove-file");
+const refDropText = document.getElementById("ref-drop-text");
+
 const noResultsEl = document.getElementById("no-results");
 const resultsContent = document.getElementById("results-content");
 const summaryTotalEl = document.getElementById("summary-total");
-const summaryPlagEl = document.getElementById("summary-plag");
+const summaryCopiedEl = document.getElementById("summary-copied");
+const summaryParaphrasedEl = document.getElementById("summary-paraphrased");
+const summaryOriginalEl = document.getElementById("summary-original");
 const scoreRing = document.getElementById("score-ring");
+
+// --- snipped ---
+// (We will replace just the upper block and then the specific updateSummary function block in the next replacement or in a multi-replace, but multi-replace is safer)
 const scoreText = document.getElementById("score-text");
 const resultsList = document.getElementById("results-list");
 
 let selectedFile = null;
+let selectedRefFile = null;
 
 // --- Textarea Word Count ---
 textArea.addEventListener('input', () => {
@@ -31,38 +47,39 @@ textArea.addEventListener('input', () => {
     wordCountEl.textContent = `${words} words | ${chars} chars`;
 });
 
-// --- File Upload Logic ---
-dropZone.addEventListener('click', (e) => {
-    if (e.target !== removeFileBtn) {
-        fileInput.click();
-    }
-});
+// --- Helper: Setup Dropzone ---
+function setupDropZone(zone, input, fileHandler) {
+    zone.addEventListener('click', (e) => {
+        if (!e.target.classList.contains('remove-file')) {
+            input.click();
+        }
+    });
+    input.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) fileHandler(e.target.files[0]);
+    });
+    zone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        zone.classList.add('dragover');
+    });
+    zone.addEventListener('dragleave', () => {
+        zone.classList.remove('dragover');
+    });
+    zone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        zone.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) fileHandler(e.dataTransfer.files[0]);
+    });
+}
 
-fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) handleFile(e.target.files[0]);
-});
-
-dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.classList.add('dragover');
-});
-
-dropZone.addEventListener('dragleave', () => {
-    dropZone.classList.remove('dragover');
-});
-
-dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('dragover');
-    if (e.dataTransfer.files.length > 0) {
-        handleFile(e.dataTransfer.files[0]);
-    }
-});
-
-function handleFile(file) {
+function validateExtension(file) {
     const ext = file.name.split('.').pop().toLowerCase();
-    if (ext !== 'txt' && ext !== 'pdf') {
-        setStatus("Only .txt and .pdf files are supported.", true);
+    return ext === 'txt' || ext === 'pdf';
+}
+
+// Setup Student File Zone
+setupDropZone(dropZone, fileInput, (file) => {
+    if (!validateExtension(file)) {
+        setStatus("Only student .txt and .pdf files are supported.", true);
         return;
     }
     selectedFile = file;
@@ -70,11 +87,10 @@ function handleFile(file) {
     fileSizeSpan.textContent = `(${(file.size / 1024 / 1024).toFixed(2)} MB)`;
     fileInfo.style.display = "flex";
     dropText.style.display = "none";
-    // Clear textarea when file is selected
     textArea.value = "";
     textArea.dispatchEvent(new Event('input'));
     setStatus("");
-}
+});
 
 removeFileBtn.addEventListener('click', () => {
     selectedFile = null;
@@ -83,12 +99,33 @@ removeFileBtn.addEventListener('click', () => {
     dropText.style.display = "block";
 });
 
+// Setup Reference File Zone
+setupDropZone(refDropZone, refFileInput, (file) => {
+    if (!validateExtension(file)) {
+        setStatus("Only reference .txt and .pdf files are supported.", true);
+        return;
+    }
+    selectedRefFile = file;
+    refFileNameSpan.textContent = file.name;
+    refFileSizeSpan.textContent = `(${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+    refFileInfo.style.display = "flex";
+    refDropText.style.display = "none";
+    setStatus("");
+});
+
+refRemoveFileBtn.addEventListener('click', () => {
+    selectedRefFile = null;
+    refFileInput.value = "";
+    refFileInfo.style.display = "none";
+    refDropText.style.display = "block";
+});
+
 // --- UI Helpers ---
 function setLoading(isLoading) {
   if (isLoading) {
     runButton.disabled = true;
     runButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg> Analyzing...`;
-    statusText.textContent = "Analyzing against reference database...";
+    statusText.textContent = selectedRefFile ? "Comparing against your uploaded reference document..." : "Analyzing against reference database...";
     scannerBar.hidden = false;
   } else {
     runButton.disabled = false;
@@ -125,11 +162,25 @@ function updateSummary(data) {
   noResultsEl.hidden = true;
   
   summaryTotalEl.textContent = data.total_sentences;
-  summaryPlagEl.textContent = data.plagiarized_sentences;
+
+  // Count exactly how many fall into each bucket
+  let copiedCount = 0;
+  let paraphrasedCount = 0;
+  let originalCount = 0;
+
+  if (data.results && data.results.length > 0) {
+      data.results.forEach(res => {
+          if (res.category === "Copied") copiedCount++;
+          else if (res.category === "Paraphrased") paraphrasedCount++;
+          else originalCount++;
+      });
+  }
+
+  summaryCopiedEl.textContent = copiedCount;
+  summaryParaphrasedEl.textContent = paraphrasedCount;
+  summaryOriginalEl.textContent = originalCount;
   
   const percent = data.plagiarism_percent ?? 0;
-  
-  summaryPlagEl.className = `stat-value score-${getScoreClass(percent)}`;
 
   // Update Progress Ring
   const radius = scoreRing.r.baseVal.value;
@@ -169,10 +220,12 @@ function renderResults(results) {
   if (!results || results.length === 0) return;
 
   results.forEach((item, index) => {
-    // API previously returned fraction like 0.85, so * 100
-    const score = item.similarity_score * 100;
-    const scoreState = getScoreClass(score);
-    const scoreColor = getScoreColor(score);
+    const rawScore = item.similarity_score;
+    const percentScore = rawScore * 100;
+    
+    // Use the 0-100 scale for determining the color/class
+    const scoreState = getScoreClass(percentScore);
+    const scoreColor = getScoreColor(percentScore);
     
     const card = document.createElement("div");
     card.className = "result-card";
@@ -182,11 +235,11 @@ function renderResults(results) {
     card.innerHTML = `
         <div class="result-header">
             <p class="result-sentence">"${item.student_sentence}"</p>
-            <span class="match-badge bg-${scoreState}">${score.toFixed(1)}%</span>
+            <span class="match-badge bg-${scoreState}">${rawScore.toFixed(3)}</span>
         </div>
         <div class="result-details">
             <strong>Category:</strong> ${item.category}<br>
-            <strong>Matched Source:</strong> <a class="source-link" href="${item.matched_source}" target="_blank">${item.matched_source}</a>
+            <strong>Matched Source:</strong> ${item.matched_source.substring(0, 150)}${item.matched_source.length > 150 ? '...' : ''}
         </div>
     `;
 
@@ -204,7 +257,7 @@ form.addEventListener("submit", async (event) => {
   const text = textArea.value.trim();
 
   if (!text && !selectedFile) {
-    setStatus("Please paste text or upload a document.", true);
+    setStatus("Please provide a Student Document (paste text or upload file).", true);
     return;
   }
 
@@ -218,7 +271,31 @@ form.addEventListener("submit", async (event) => {
   try {
     let response;
 
-    if (selectedFile) {
+    if (selectedFile && selectedRefFile) {
+        // Mode 1: File vs File
+        const formData = new FormData();
+        formData.append("student_file", selectedFile);
+        formData.append("reference_file", selectedRefFile);
+        
+        response = await fetch("/api/detect-with-reference", {
+            method: "POST",
+            body: formData,
+        });
+
+    } else if (text && selectedRefFile) {
+        // Mode 2: Text vs File (Text is converted to a virtual file Blob before uploading)
+        const formData = new FormData();
+        const textBlob = new Blob([text], { type: "text/plain" });
+        formData.append("student_file", textBlob, "student_input.txt");
+        formData.append("reference_file", selectedRefFile);
+        
+        response = await fetch("/api/detect-with-reference", {
+            method: "POST",
+            body: formData,
+        });
+
+    } else if (selectedFile && !selectedRefFile) {
+        // Mode 3: Student File vs Database
         const formData = new FormData();
         formData.append("file", selectedFile);
         
@@ -227,6 +304,7 @@ form.addEventListener("submit", async (event) => {
             body: formData,
         });
     } else {
+        // Mode 4: Student Text vs Database
         response = await fetch("/api/detect", {
             method: "POST",
             headers: {

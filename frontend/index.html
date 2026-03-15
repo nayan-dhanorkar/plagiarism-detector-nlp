@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=3" />
+    <link rel="stylesheet" href="styles.css?v=6" />
   </head>
   <body>
     <div class="app-shell">
@@ -27,7 +27,7 @@
         <section class="card input-card">
           <form id="detect-form" class="form">
             <div class="input-group">
-                <label for="text" class="field-label">Student Text</label>
+                <label for="text" class="field-label">Student Text (Document to check)</label>
                 <div class="textarea-wrapper">
                     <textarea
                     id="text"
@@ -40,18 +40,35 @@
                 </div>
             </div>
 
-            <div class="divider"><span>OR</span></div>
+            <div class="divider"><span>OR UPLOAD</span></div>
 
             <div class="input-group">
-                <label class="field-label">Upload Document</label>
+                <label class="field-label">Student Document (File to check)</label>
                 <div class="file-drop-zone" id="file-drop-zone">
                     <input type="file" id="file-upload" accept=".txt,.pdf" hidden />
                     <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                    <p class="drop-text" id="drop-text">Drag & drop a .txt or .pdf file here, or <span class="browse-link">browse</span></p>
+                    <p class="drop-text" id="drop-text">Drag & drop a student .txt or .pdf file here, or <span class="browse-link">browse</span></p>
                     <div class="file-info" id="file-info" style="display: none;">
                         <span id="file-name" class="file-name">filename.txt</span>
                         <span id="file-size" class="file-size">(1.2 MB)</span>
                         <button type="button" id="remove-file" class="remove-file" aria-label="Remove file">×</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="divider"><span>AND</span></div>
+
+            <div class="input-group">
+                <label class="field-label">Reference Document (Base to check against - Optional)</label>
+                <p style="margin: 0 0 8px; font-size: 0.85em; color: var(--text-muted);">If empty, checks against pre-loaded database.</p>
+                <div class="file-drop-zone" id="ref-drop-zone">
+                    <input type="file" id="ref-upload" accept=".txt,.pdf" hidden />
+                    <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    <p class="drop-text" id="ref-drop-text">Drag & drop a reference .txt or .pdf file here, or <span class="browse-link">browse</span></p>
+                    <div class="file-info" id="ref-file-info" style="display: none;">
+                        <span id="ref-file-name" class="file-name">filename.txt</span>
+                        <span id="ref-file-size" class="file-size">(1.2 MB)</span>
+                        <button type="button" id="ref-remove-file" class="remove-file" aria-label="Remove reference file">×</button>
                     </div>
                 </div>
             </div>
@@ -83,8 +100,16 @@
                         <span class="stat-value" id="summary-total">0</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">Plagiarized</span>
-                        <span class="stat-value highlight" id="summary-plag">0</span>
+                        <span class="stat-label" style="color: var(--color-danger);">Copied</span>
+                        <span class="stat-value" id="summary-copied" style="color: var(--color-danger);">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label" style="color: var(--color-warn);">Paraphrased</span>
+                        <span class="stat-value" id="summary-paraphrased" style="color: var(--color-warn);">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label" style="color: var(--color-safe);">Original</span>
+                        <span class="stat-value" id="summary-original" style="color: var(--color-safe);">0</span>
                     </div>
                 </div>
                 <div class="progress-ring-container">
@@ -104,6 +129,6 @@
       </main>
     </div>
 
-    <script src="main.js?v=3"></script>
+    <script src="main.js?v=5"></script>
   </body>
 </html>

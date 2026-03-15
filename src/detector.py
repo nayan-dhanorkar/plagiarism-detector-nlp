@@ -155,21 +155,19 @@ class PlagiarismDetector:
     #  CORE DETECTION ENGINE  (shared by all entry-points)
     # ──────────────────────────────────────────────────────── #
 
-    def _run_detection(self, student_sentences):
+    def _run_detection(self, student_sentences, reference_sentences=None, reference_embeddings=None):
         """
         Core logic: embeds student sentences, finds best matches in the
-        reference DB, applies negation penalty, and classifies each sentence.
+        reference DB (or the provided dynamic reference), applies negation
+        penalty, and classifies each sentence.
 
         Args:
             student_sentences (list[str]): Preprocessed sentences to check.
+            reference_sentences (list[str], optional): Dynamic custom reference sentences.
+            reference_embeddings (np.ndarray, optional): Dynamic custom reference embeddings.
 
         Returns:
-            dict: {
-                "total_sentences"      : int,
-                "plagiarized_sentences": int,
-                "plagiarism_percent"   : float,
-                "results"              : list[dict]
-            }
+            dict: Detection summary.
         """
         if not student_sentences:
             return {
@@ -181,9 +179,21 @@ class PlagiarismDetector:
 
         student_embeddings = self.embedder.encode(student_sentences)
 
+        # Fallback to DB if no dynamic reference provided
+        db_sent = reference_sentences if reference_sentences is not None else self.db_sentences
+        db_emb  = reference_embeddings if reference_embeddings is not None else self.db_embeddings
+
+        if not db_sent or len(db_sent) == 0:
+             return {
+                "total_sentences"      : len(student_sentences),
+                "plagiarized_sentences": 0,
+                "plagiarism_percent"   : 0.0,
+                "results"              : [],
+            }
+
         matches = find_best_matches(
             student_embeddings,
-            self.db_embeddings,
+            db_emb,
             top_k=3,
         )
 
@@ -195,7 +205,7 @@ class PlagiarismDetector:
             j, score = match_list[0]          # Best match from top-K
 
             student_sentence = student_sentences[i]
-            source_sentence  = self.db_sentences[j]
+            source_sentence  = db_sent[j]
 
             # ── Negation penalty ────────────────────────────
             # If exactly one of the two sentences has a negation, the
@@ -309,6 +319,25 @@ class PlagiarismDetector:
         """
         sentences = preprocess_raw_bytes(file_bytes, filename)
         return self._run_detection(sentences)
+
+    # ──────────────────────────────────────────────────────── #
+    #  ENTRY POINT 4 — API: dynamic custom reference file
+    # ──────────────────────────────────────────────────────── #
+
+    def detect_with_dynamic_reference(self, student_bytes: bytes, student_filename: str, ref_bytes: bytes, ref_filename: str):
+        """
+        Called when the user uploads both a student document AND a custom reference document.
+        """
+        student_sentences = preprocess_raw_bytes(student_bytes, student_filename)
+        ref_sentences     = preprocess_raw_bytes(ref_bytes, ref_filename)
+
+        ref_embeddings    = self.embedder.encode(ref_sentences)
+
+        return self._run_detection(
+            student_sentences,
+            reference_sentences=ref_sentences,
+            reference_embeddings=ref_embeddings
+        )
 
 
 # ──────────────────────────────────────────────────────────── #

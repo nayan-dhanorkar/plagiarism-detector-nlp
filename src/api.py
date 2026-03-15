@@ -134,6 +134,48 @@ async def detect_file(file: UploadFile = File(...)):
     return _build_response(summary)
 
 
+@app.post("/api/detect-with-reference", response_model=DetectResponse)
+async def detect_with_reference(
+    student_file: UploadFile = File(...),
+    reference_file: UploadFile = File(...)
+):
+    """
+    Detect plagiarism by comparing a student's file directly against a provided reference file.
+    """
+    ALLOWED_EXTENSIONS = {".pdf", ".txt"}
+
+    # Validate student file
+    s_ext = os.path.splitext(student_file.filename or "")[1].lower()
+    if s_ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=422, detail=f"Unsupported student file type '{s_ext}'.")
+
+    # Validate reference file
+    r_ext = os.path.splitext(reference_file.filename or "")[1].lower()
+    if r_ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=422, detail=f"Unsupported reference file type '{r_ext}'.")
+
+    # Read bytes
+    s_bytes = await student_file.read()
+    r_bytes = await reference_file.read()
+
+    if not s_bytes or not r_bytes:
+        raise HTTPException(status_code=400, detail="One or both uploaded files are empty.")
+
+    try:
+        summary = detector.detect_with_dynamic_reference(
+            student_bytes=s_bytes,
+            student_filename=student_file.filename or "student.txt",
+            ref_bytes=r_bytes,
+            ref_filename=reference_file.filename or "reference.txt"
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Processing error: {e}")
+
+    return _build_response(summary)
+
+
 # ─────────────────────── Static Frontend ─────────────────── #
 
 BASE_DIR     = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
