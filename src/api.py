@@ -1,25 +1,29 @@
 # src/api.py
 
 import os
+import io
+from typing import List
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from .detector import PlagiarismDetector
+from .report_generator import generate_pdf_report_bytes
 
 
-# ─────────────────────── Pydantic Schemas ────────────────── #
+# ─────────────────────── Schemas ─────────────────────────── #
 
 class DetectRequest(BaseModel):
-    """Request body for the plain-text detect endpoint."""
     text: str
 
 
 class DetectResultItem(BaseModel):
     student_sentence : str
     matched_source   : str
+    source_file      : str
     similarity_score : float
     category         : str
 
@@ -28,26 +32,19 @@ class DetectResponse(BaseModel):
     total_sentences       : int
     plagiarized_sentences : int
     plagiarism_percent    : float
+    source_breakdown      : dict[str, float]
     results               : list[DetectResultItem]
 
 
-# ─────────────────────── App Setup ───────────────────────── #
+# ─────────────────────── App ─────────────────────────────── #
 
-app = FastAPI(
-    title       = "Plagiarism Detector API",
-    description = "Semantic plagiarism detection using SBERT embeddings.",
-    version     = "1.0.0",
-)
+app = FastAPI(title="Plagiarism Detector API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins     = ["*"],
-    allow_credentials = True,
-    allow_methods     = ["*"],
-    allow_headers     = ["*"],
+    allow_origins=["*"], allow_credentials=True,
+    allow_methods=["*"], allow_headers=["*"],
 )
-
-# ─────────────────────── Detector Init ───────────────────── #
 
 detector = PlagiarismDetector()
 detector.load_database()
@@ -56,21 +53,21 @@ detector.load_database()
 # ─────────────────────── Helper ──────────────────────────── #
 
 def _build_response(summary: dict) -> DetectResponse:
-    """Converts the raw summary dict into a typed DetectResponse."""
     results = [
         DetectResultItem(
             student_sentence = item["Student Sentence"],
             matched_source   = item["Matched Source"],
+            source_file      = item.get("Source File", "Unknown"),
             similarity_score = item["Similarity Score"],
             category         = item["Category"],
         )
         for item in summary["results"]
     ]
-
     return DetectResponse(
         total_sentences       = summary["total_sentences"],
         plagiarized_sentences = summary["plagiarized_sentences"],
         plagiarism_percent    = summary["plagiarism_percent"],
+        source_breakdown      = summary.get("source_breakdown", {}),
         results               = results,
     )
 
@@ -79,111 +76,89 @@ def _build_response(summary: dict) -> DetectResponse:
 
 @app.post("/api/detect", response_model=DetectResponse)
 def detect_text(request: DetectRequest):
-    """
-    Detect plagiarism from a plain-text string.
-
-    Use this when the student pastes or types their text directly
-    into the frontend input box.
-    """
     if not request.text.strip():
         raise HTTPException(status_code=400, detail="Text cannot be empty.")
-
-    summary = detector.detect_from_text(request.text)
-    return _build_response(summary)
+    return _build_response(detector.detect_from_text(request.text))
 
 
 @app.post("/api/detect-file", response_model=DetectResponse)
 async def detect_file(file: UploadFile = File(...)):
-    """
-    Detect plagiarism from an uploaded file.
-
-    Accepts:
-      - .pdf  — academic papers, essays (text-based PDFs)
-      - .txt  — plain text files
-
-    The backend auto-extracts text, cleans it, and runs detection.
-    Scanned/image-only PDFs are not supported (no OCR).
-    """
     filename = file.filename or ""
-    ext      = os.path.splitext(filename)[1].lower()
-
-    ALLOWED_EXTENSIONS = {".pdf", ".txt"}
-
-    if ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(
-            status_code = 422,
-            detail      = f"Unsupported file type '{ext}'. "
-                          f"Please upload a .pdf or .txt file.",
-        )
-
-    # Read file bytes
+    if os.path.splitext(filename)[1].lower() not in {".pdf", ".txt"}:
+        raise HTTPException(status_code=422, detail="Only .pdf or .txt files are supported.")
     file_bytes = await file.read()
-
     if not file_bytes:
         raise HTTPException(status_code=400, detail="Uploaded file is empty.")
-
-    # Run detection
     try:
         summary = detector.detect_from_bytes(file_bytes, filename)
     except ValueError as e:
-        # Raised when no text can be extracted (e.g. scanned PDF)
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Processing error: {e}")
-
     return _build_response(summary)
 
 
 @app.post("/api/detect-with-reference", response_model=DetectResponse)
 async def detect_with_reference(
-    student_file: UploadFile = File(...),
-    reference_file: UploadFile = File(...)
+    student_file    : UploadFile       = File(...),
+    reference_files : List[UploadFile] = File(...),
 ):
-    """
-    Detect plagiarism by comparing a student's file directly against a provided reference file.
-    """
-    ALLOWED_EXTENSIONS = {".pdf", ".txt"}
-
-    # Validate student file
+    ALLOWED = {".pdf", ".txt"}
     s_ext = os.path.splitext(student_file.filename or "")[1].lower()
-    if s_ext not in ALLOWED_EXTENSIONS:
+    if s_ext not in ALLOWED:
         raise HTTPException(status_code=422, detail=f"Unsupported student file type '{s_ext}'.")
-
-    # Validate reference file
-    r_ext = os.path.splitext(reference_file.filename or "")[1].lower()
-    if r_ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(status_code=422, detail=f"Unsupported reference file type '{r_ext}'.")
-
-    # Read bytes
     s_bytes = await student_file.read()
-    r_bytes = await reference_file.read()
+    if not s_bytes:
+        raise HTTPException(status_code=400, detail="Student file is empty.")
 
-    if not s_bytes or not r_bytes:
-        raise HTTPException(status_code=400, detail="One or both uploaded files are empty.")
+    ref_data_list = []
+    for r in reference_files:
+        r_ext = os.path.splitext(r.filename or "")[1].lower()
+        if r_ext not in ALLOWED:
+            raise HTTPException(status_code=422, detail=f"Unsupported reference file type '{r_ext}'.")
+        r_bytes = await r.read()
+        if not r_bytes:
+            raise HTTPException(status_code=400, detail=f"Reference file '{r.filename}' is empty.")
+        ref_data_list.append((r_bytes, r.filename or "reference.txt"))
+
+    if not ref_data_list:
+        raise HTTPException(status_code=400, detail="No valid reference files provided.")
 
     try:
-        summary = detector.detect_with_dynamic_reference(
+        summary = detector.detect_with_dynamic_references(
             student_bytes=s_bytes,
             student_filename=student_file.filename or "student.txt",
-            ref_bytes=r_bytes,
-            ref_filename=reference_file.filename or "reference.txt"
+            reference_files=ref_data_list,
         )
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Processing error: {e}")
-
     return _build_response(summary)
 
 
-# ─────────────────────── Static Frontend ─────────────────── #
+@app.post("/api/report")
+def download_report(request: DetectRequest):
+    """
+    Re-runs detection on the submitted text and returns a PDF report.
+    Called by the Download Report button in the frontend.
+    """
+    if not request.text.strip():
+        raise HTTPException(status_code=400, detail="Text cannot be empty.")
+
+    summary   = detector.detect_from_text(request.text)
+    results   = summary["results"]
+    pdf_bytes = generate_pdf_report_bytes(results, summary)
+
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="plagiarism_report.pdf"'},
+    )
+
+
+# ─────────────────────── Static ──────────────────────────── #
 
 BASE_DIR     = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
-
-# Mounted last so API routes take priority over static file serving
-app.mount(
-    "/",
-    StaticFiles(directory=FRONTEND_DIR, html=True),
-    name="frontend",
-)
+app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")

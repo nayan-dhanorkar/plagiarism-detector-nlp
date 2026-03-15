@@ -5,7 +5,6 @@ import os
 import re
 from nltk.tokenize import sent_tokenize
 
-# --- PDF Support ---
 import pdfplumber
 
 
@@ -14,16 +13,10 @@ import pdfplumber
 # -------------------------------------------------------- #
 
 def load_text(file_path):
-    """
-    Reads plain text from a .txt file and returns it as a string.
-    """
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
-
     with open(file_path, "r", encoding="utf-8") as f:
-        text = f.read()
-
-    return text
+        return f.read()
 
 
 # -------------------------------------------------------- #
@@ -31,70 +24,32 @@ def load_text(file_path):
 # -------------------------------------------------------- #
 
 def extract_text_from_pdf(file_path):
-    """
-    Extracts raw text from a PDF file using pdfplumber.
-
-    pdfplumber is preferred over pypdf for academic/research PDFs
-    because it correctly handles multi-column layouts, headers, and
-    preserves paragraph spacing better.
-
-    Args:
-        file_path (str): Absolute path to the .pdf file.
-
-    Returns:
-        str: All extracted text joined from every page.
-
-    Raises:
-        FileNotFoundError: If the file doesn't exist.
-        ValueError: If no text could be extracted (e.g. scanned image PDF).
-    """
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"PDF not found: {file_path}")
 
     all_text = []
-
     with pdfplumber.open(file_path) as pdf:
         for page_num, page in enumerate(pdf.pages, start=1):
             page_text = page.extract_text()
-
             if page_text:
-                # Strip excessive whitespace within a page
-                page_text = page_text.strip()
-                all_text.append(page_text)
+                all_text.append(page_text.strip())
             else:
-                # Could be a scanned image page — warn but continue
-                print(f"  [Warning] Page {page_num} yielded no text. "
-                      f"It may be a scanned/image page.")
+                print(f"  [Warning] Page {page_num} yielded no text.")
 
     if not all_text:
         raise ValueError(
             f"No extractable text found in '{file_path}'. "
-            "If it's a scanned PDF, OCR support is needed (pytesseract)."
+            "If it's a scanned PDF, OCR support is needed."
         )
-
-    # Join pages with a newline so sentence tokeniser sees page boundaries
-    full_text = "\n".join(all_text)
-    return full_text
+    return "\n".join(all_text)
 
 
 def extract_text_from_pdf_bytes(file_bytes: bytes) -> str:
-    """
-    Extracts text from a PDF given as raw bytes (used by the FastAPI upload endpoint).
-
-    Args:
-        file_bytes (bytes): Raw bytes of the uploaded PDF.
-
-    Returns:
-        str: Extracted text.
-    """
     import io
-
     all_text = []
-
     with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
         for page_num, page in enumerate(pdf.pages, start=1):
             page_text = page.extract_text()
-
             if page_text:
                 all_text.append(page_text.strip())
             else:
@@ -102,110 +57,131 @@ def extract_text_from_pdf_bytes(file_bytes: bytes) -> str:
 
     if not all_text:
         raise ValueError("No extractable text found in the uploaded PDF.")
-
     return "\n".join(all_text)
 
 
 # -------------------------------------------------------- #
-#  SHARED CLEANING + TOKENISATION
+#  CLEANING + TOKENISATION
 # -------------------------------------------------------- #
 
 def clean_text(text):
-    """
-    Cleans text without breaking sentence boundaries.
-
-    - Collapses whitespace runs into a single space
-    - Removes non-ASCII / special chars while keeping sentence punctuation
-    - Does NOT strip periods, commas, ? or ! so sent_tokenize works correctly
-    """
-    # Normalise all whitespace (tabs, newlines, multiple spaces) → single space
     text = re.sub(r"\s+", " ", text)
-
-    # Keep only alphanumerics + basic punctuation needed for sentences
     text = re.sub(r"[^a-zA-Z0-9\s\.\,\?\!]", "", text)
-
     return text.strip()
 
 
 def split_into_sentences(text):
-    """
-    Splits a cleaned text string into individual sentences using NLTK.
-
-    Filters out very short fragments (< 10 chars) that aren't real sentences.
-    """
     sentences = sent_tokenize(text)
-    sentences = [s.strip() for s in sentences if len(s.strip()) > 10]
-    return sentences
+    return [s.strip() for s in sentences if len(s.strip()) > 10]
+
+
+# -------------------------------------------------------- #
+#  CHUNKING
+# -------------------------------------------------------- #
+
+def sliding_chunks(sentences, window_size=2):
+    """
+    Original chunking function — takes a list of sentences.
+    Used internally and by detect_from_text() in detector.py.
+
+    Example with window_size=2:
+      [S1, S2, S3, S4] → ["S1 S2", "S2 S3", "S3 S4"]
+    """
+    if not sentences:
+        return []
+    if len(sentences) < window_size:
+        return [" ".join(sentences)]
+    return [
+        " ".join(sentences[i : i + window_size])
+        for i in range(len(sentences) - window_size + 1)
+    ]
+
+
+def sliding_window_chunks(text, window_size=2, step=1):
+    """
+    ✅ Alias used by detector.py imports.
+    Takes raw text (not a sentence list), tokenises it first,
+    then applies sliding window with configurable step size.
+
+    step=1  → maximum overlap (best for detection)
+    step=window_size → no overlap (faster)
+    """
+    sentences = split_into_sentences(text)
+
+    if not sentences:
+        return []
+    if len(sentences) <= window_size:
+        return [" ".join(sentences)]
+
+    chunks = []
+    for i in range(0, len(sentences) - window_size + 1, step):
+        chunks.append(" ".join(sentences[i : i + window_size]))
+    return chunks
 
 
 # -------------------------------------------------------- #
 #  HIGH-LEVEL PIPELINE FUNCTIONS
 # -------------------------------------------------------- #
 
-def preprocess_text_file(file_path):
-    """
-    Full pipeline for a plain .txt file:
-        load → clean → split into sentences
-    """
-    text = load_text(file_path)
-    text = clean_text(text)
+def preprocess_text_file(file_path, use_chunking=False, window_size=2, strategy=None):
+    text      = load_text(file_path)
+    text      = clean_text(text)
     sentences = split_into_sentences(text)
+
+    # Support both use_chunking=True and strategy="sliding_window"
+    if use_chunking or strategy == "sliding_window":
+        return sliding_chunks(sentences, window_size)
     return sentences
 
 
-def preprocess_pdf_file(file_path):
-    """
-    Full pipeline for a .pdf file:
-        extract → clean → split into sentences
-    """
-    text = extract_text_from_pdf(file_path)
-    text = clean_text(text)
+def preprocess_pdf_file(file_path, use_chunking=False, window_size=2, strategy=None):
+    text      = extract_text_from_pdf(file_path)
+    text      = clean_text(text)
     sentences = split_into_sentences(text)
+
+    if use_chunking or strategy == "sliding_window":
+        return sliding_chunks(sentences, window_size)
     return sentences
 
 
-def preprocess_file(file_path):
+def preprocess_file(file_path, use_chunking=False, window_size=2, strategy=None):
     """
-    Unified entry-point that auto-detects file type (.txt or .pdf)
-    and runs the appropriate preprocessing pipeline.
-
-    This is the function called by detector.py — no changes needed there.
+    Unified entry-point — auto-detects .txt or .pdf.
+    Accepts both calling conventions:
+      preprocess_file(path, use_chunking=True, window_size=2)   ← original style
+      preprocess_file(path, strategy="sliding_window", window_size=2)  ← new style
     """
     ext = os.path.splitext(file_path)[1].lower()
 
     if ext == ".pdf":
-        return preprocess_pdf_file(file_path)
+        return preprocess_pdf_file(file_path, use_chunking, window_size, strategy)
     elif ext == ".txt":
-        return preprocess_text_file(file_path)
+        return preprocess_text_file(file_path, use_chunking, window_size, strategy)
     else:
         raise ValueError(
-            f"Unsupported file type '{ext}'. "
-            "Only .txt and .pdf files are supported."
+            f"Unsupported file type '{ext}'. Only .txt and .pdf are supported."
         )
 
 
-def preprocess_raw_bytes(file_bytes: bytes, filename: str):
+def preprocess_raw_bytes(file_bytes: bytes, filename: str,
+                         use_chunking=False, window_size=2, strategy=None):
     """
-    Used by the API upload endpoint.
-    Detects whether uploaded bytes are a PDF or plain text and preprocesses.
-
-    Args:
-        file_bytes (bytes): Raw bytes from the uploaded file.
-        filename   (str)  : Original filename (used for extension detection).
-
-    Returns:
-        list[str]: List of preprocessed sentences.
+    API upload entry-point — accepts raw bytes.
+    Accepts both use_chunking= and strategy= calling conventions.
     """
     ext = os.path.splitext(filename)[1].lower()
 
     if ext == ".pdf":
         text = extract_text_from_pdf_bytes(file_bytes)
     else:
-        # Treat as plain text
         text = file_bytes.decode("utf-8", errors="replace")
 
-    text = clean_text(text)
-    return split_into_sentences(text)
+    text      = clean_text(text)
+    sentences = split_into_sentences(text)
+
+    if use_chunking or strategy == "sliding_window":
+        return sliding_chunks(sentences, window_size)
+    return sentences
 
 
 # -------------------------------------------------------- #
@@ -213,26 +189,28 @@ def preprocess_raw_bytes(file_bytes: bytes, filename: str):
 # -------------------------------------------------------- #
 
 if __name__ == "__main__":
-
     import sys
 
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-    # Test with a .txt file
     txt_file = os.path.join(BASE_DIR, "data", "student_inputs", "input.txt")
 
     if os.path.exists(txt_file):
-        print("=== TXT FILE TEST ===")
+        print("=== SENTENCE MODE ===")
         sentences = preprocess_file(txt_file)
-        print(f"Total sentences: {len(sentences)}")
-        for i, s in enumerate(sentences[:5], 1):
+        print(f"Total: {len(sentences)}")
+        for i, s in enumerate(sentences[:3], 1):
             print(f"  {i}. {s}")
 
-    # Test with a .pdf file if one is provided as CLI arg
+        print("\n=== SLIDING WINDOW MODE ===")
+        chunks = preprocess_file(txt_file, strategy="sliding_window", window_size=2)
+        print(f"Total: {len(chunks)}")
+        for i, c in enumerate(chunks[:3], 1):
+            print(f"  {i}. {c}")
+
     if len(sys.argv) > 1:
         pdf_path = sys.argv[1]
-        print(f"\n=== PDF FILE TEST: {pdf_path} ===")
+        print(f"\n=== PDF TEST: {pdf_path} ===")
         sentences = preprocess_file(pdf_path)
-        print(f"Total sentences: {len(sentences)}")
-        for i, s in enumerate(sentences[:5], 1):
+        print(f"Total: {len(sentences)}")
+        for i, s in enumerate(sentences[:3], 1):
             print(f"  {i}. {s}")

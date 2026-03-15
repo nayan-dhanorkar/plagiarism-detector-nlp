@@ -7,70 +7,68 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=6" />
+    <link rel="stylesheet" href="styles.css?v=7" />
   </head>
   <body>
     <div class="app-shell">
       <header class="app-header">
         <div class="brand">
           <div class="shield-icon">
-             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
           </div>
           <h1>Plagiarism Detector</h1>
         </div>
-        <p class="subtitle">
-          AI-Powered Plagiarism Detector
-        </p>
+        <p class="subtitle">AI-Powered Plagiarism Detector</p>
       </header>
 
       <main class="app-main">
+        <!-- ── INPUT CARD ── -->
         <section class="card input-card">
           <form id="detect-form" class="form">
+
+            <!-- Student text -->
             <div class="input-group">
-                <label for="text" class="field-label">Student Text (Document to check)</label>
-                <div class="textarea-wrapper">
-                    <textarea
-                    id="text"
-                    name="text"
-                    class="text-input"
-                    rows="8"
-                    placeholder="Paste or type the student's text here..."
-                    ></textarea>
-                    <div class="word-count" id="word-count">0 words | 0 chars</div>
-                </div>
+              <label for="text" class="field-label">Student Text (Document to check)</label>
+              <div class="textarea-wrapper">
+                <textarea id="text" name="text" class="text-input" rows="8"
+                  placeholder="Paste or type the student's text here..."></textarea>
+                <div class="word-count" id="word-count">0 words | 0 chars</div>
+              </div>
             </div>
 
             <div class="divider"><span>OR UPLOAD</span></div>
 
+            <!-- Student file -->
             <div class="input-group">
-                <label class="field-label">Student Document (File to check)</label>
-                <div class="file-drop-zone" id="file-drop-zone">
-                    <input type="file" id="file-upload" accept=".txt,.pdf" hidden />
-                    <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                    <p class="drop-text" id="drop-text">Drag & drop a student .txt or .pdf file here, or <span class="browse-link">browse</span></p>
-                    <div class="file-info" id="file-info" style="display: none;">
-                        <span id="file-name" class="file-name">filename.txt</span>
-                        <span id="file-size" class="file-size">(1.2 MB)</span>
-                        <button type="button" id="remove-file" class="remove-file" aria-label="Remove file">×</button>
-                    </div>
+              <label class="field-label">Student Document (File to check)</label>
+              <div class="file-drop-zone" id="file-drop-zone">
+                <input type="file" id="file-upload" accept=".txt,.pdf" hidden />
+                <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                <p class="drop-text" id="drop-text">Drag & drop a student .txt or .pdf, or <span class="browse-link">browse</span></p>
+                <div class="file-info" id="file-info" style="display:none;">
+                  <span id="file-name" class="file-name">filename.txt</span>
+                  <span id="file-size" class="file-size">(1.2 MB)</span>
+                  <button type="button" id="remove-file" class="remove-file" aria-label="Remove file">×</button>
                 </div>
+              </div>
             </div>
 
             <div class="divider"><span>AND</span></div>
 
+            <!-- Reference files — MULTI upload -->
             <div class="input-group">
-                <label class="field-label">Reference Document (Base to check against - Optional)</label>
-                <p style="margin: 0 0 8px; font-size: 0.85em; color: var(--text-muted);">If empty, checks against pre-loaded database.</p>
-                <div class="file-drop-zone" id="ref-drop-zone">
-                    <input type="file" id="ref-upload" accept=".txt,.pdf" hidden />
-                    <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                    <p class="drop-text" id="ref-drop-text">Drag & drop a reference .txt or .pdf file here, or <span class="browse-link">browse</span></p>
-                    <div class="file-info" id="ref-file-info" style="display: none;">
-                        <span id="ref-file-name" class="file-name">filename.txt</span>
-                        <span id="ref-file-size" class="file-size">(1.2 MB)</span>
-                        <button type="button" id="ref-remove-file" class="remove-file" aria-label="Remove reference file">×</button>
-                    </div>
-                </div>
+              <label class="field-label">Reference Documents (Optional — check against these)</label>
+              <p style="margin:0 0 8px;font-size:0.85em;color:var(--text-muted);">
+                Add one or more .pdf / .txt files. If empty, checks against pre-loaded database.
+              </p>
+              <div class="file-drop-zone" id="ref-drop-zone">
+                <!-- multiple allows picking several files at once -->
+                <input type="file" id="ref-upload" accept=".txt,.pdf" multiple hidden />
+                <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                <p class="drop-text" id="ref-drop-text">Drag & drop reference files here, or <span class="browse-link">browse</span></p>
+                <!-- List of added reference files rendered here by JS -->
+                <div id="ref-file-list" class="ref-file-list"></div>
+              </div>
             </div>
 
             <div class="form-footer">
@@ -79,56 +77,66 @@
                 Check Plagiarism
               </button>
               <div class="status-container">
-                  <div class="scanner-bar" id="scanner-bar" hidden></div>
-                  <span class="status-text" id="status-text"></span>
+                <div class="scanner-bar" id="scanner-bar" hidden></div>
+                <span class="status-text" id="status-text"></span>
               </div>
             </div>
+
           </form>
         </section>
 
+        <!-- ── RESULTS CARD ── -->
         <section class="card results-card" id="results-card">
           <div id="no-results" class="empty-state">
-            <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.5;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
             <p>Run detection to see results here.</p>
           </div>
 
           <div id="results-content" class="results-content" hidden>
+
+            <!-- Stats + ring -->
             <div class="score-sticky-header">
-                <div class="stats-left">
-                    <div class="stat-item">
-                        <span class="stat-label">Total Sentences</span>
-                        <span class="stat-value" id="summary-total">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label" style="color: var(--color-danger);">Copied</span>
-                        <span class="stat-value" id="summary-copied" style="color: var(--color-danger);">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label" style="color: var(--color-warn);">Paraphrased</span>
-                        <span class="stat-value" id="summary-paraphrased" style="color: var(--color-warn);">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label" style="color: var(--color-safe);">Original</span>
-                        <span class="stat-value" id="summary-original" style="color: var(--color-safe);">0</span>
-                    </div>
+              <div class="stats-left">
+                <div class="stat-item">
+                  <span class="stat-label">Total</span>
+                  <span class="stat-value" id="summary-total">0</span>
                 </div>
-                <div class="progress-ring-container">
-                    <svg class="progress-ring" width="90" height="90">
-                        <circle class="progress-ring-bg" stroke="rgba(255,255,255,0.08)" stroke-width="7" fill="transparent" r="38" cx="45" cy="45"/>
-                        <circle class="progress-ring-circle" id="score-ring" stroke="#3b82f6" stroke-width="7" stroke-linecap="round" fill="transparent" r="38" cx="45" cy="45" stroke-dasharray="238.76" stroke-dashoffset="238.76"/>
-                    </svg>
-                    <div class="progress-ring-text" id="score-text">0%</div>
+                <div class="stat-item">
+                  <span class="stat-label" style="color:var(--color-danger);">Copied</span>
+                  <span class="stat-value" id="summary-copied" style="color:var(--color-danger);">0</span>
                 </div>
+                <div class="stat-item">
+                  <span class="stat-label" style="color:var(--color-warn);">Paraphrased</span>
+                  <span class="stat-value" id="summary-paraphrased" style="color:var(--color-warn);">0</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label" style="color:var(--color-safe);">Original</span>
+                  <span class="stat-value" id="summary-original" style="color:var(--color-safe);">0</span>
+                </div>
+              </div>
+              <div class="progress-ring-container">
+                <svg class="progress-ring" width="90" height="90">
+                  <circle class="progress-ring-bg" stroke="rgba(255,255,255,0.08)" stroke-width="7" fill="transparent" r="38" cx="45" cy="45"/>
+                  <circle class="progress-ring-circle" id="score-ring" stroke="#3b82f6" stroke-width="7" stroke-linecap="round" fill="transparent" r="38" cx="45" cy="45" stroke-dasharray="238.76" stroke-dashoffset="238.76"/>
+                </svg>
+                <div class="progress-ring-text" id="score-text">0%</div>
+              </div>
             </div>
-            
-            <div class="results-list" id="results-list">
-                <!-- Sentence cards will be injected here -->
-            </div>
+
+            <!-- Download Report button — hidden until results arrive -->
+            <button id="download-report-btn" class="download-btn" hidden>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download Report
+            </button>
+
+            <!-- Sentence cards -->
+            <div class="results-list" id="results-list"></div>
+
           </div>
         </section>
       </main>
     </div>
 
-    <script src="main.js?v=5"></script>
+    <script src="main.js?v=6"></script>
   </body>
 </html>
