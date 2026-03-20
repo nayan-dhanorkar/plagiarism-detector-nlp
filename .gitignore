@@ -211,3 +211,7 @@ venv/
 __pycache__/
 *.pyc
 .cache/
+
+# Ignore generated database and reports
+embeddings/
+reports/

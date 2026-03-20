@@ -9,7 +9,7 @@ class SentenceEmbedder:
     Handles SBERT model loading and embedding generation
     """
 
-    def __init__(self, model_name="all-mpnet-base-v2"):
+    def __init__(self, model_name="all-MiniLM-L6-v2"):
 
         print("Loading SBERT model...")
         self.model = SentenceTransformer(model_name)
