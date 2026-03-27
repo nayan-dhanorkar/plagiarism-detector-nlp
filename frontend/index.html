@@ -1,80 +1,179 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark" data-palette="blue">
   <head>
     <meta charset="UTF-8" />
     <title>Plagiarism Detector</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=7" />
+    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css?v=8" />
   </head>
   <body>
+
+    <!-- ═══════════════════════════════════════════════════
+         FLOATING VERTICAL TOOLBAR  (fixed, top-right)
+         ═══════════════════════════════════════════════════ -->
+    <aside class="fab-toolbar" id="fab-toolbar" role="toolbar" aria-label="Display settings">
+
+      <!-- Dark / Light toggle -->
+      <button class="fab-btn" id="theme-toggle-btn" title="Toggle light / dark mode" aria-label="Toggle theme">
+        <span class="fab-icon" id="theme-icon">🌙</span>
+        <span class="fab-label">Dark/Light</span>
+      </button>
+
+      <div class="fab-sep"></div>
+
+      <!-- Font size increase -->
+      <button class="fab-btn" id="font-inc-btn" title="Increase text size" aria-label="Increase text size">
+        <span class="fab-icon font-az">A<sup>+</sup></span>
+        <span class="fab-label">Larger</span>
+      </button>
+
+      <!-- Font size decrease -->
+      <button class="fab-btn" id="font-dec-btn" title="Decrease text size" aria-label="Decrease text size">
+        <span class="fab-icon font-az">A<sup>−</sup></span>
+        <span class="fab-label">Smaller</span>
+      </button>
+
+      <div class="fab-sep"></div>
+
+      <!-- Palette picker -->
+      <div class="fab-palette-wrap">
+        <button class="fab-btn" id="palette-btn"
+                title="Change color palette"
+                aria-label="Color palette"
+                aria-expanded="false"
+                aria-haspopup="true">
+          <span class="fab-icon">🎨</span>
+          <span class="fab-label">Colors</span>
+        </button>
+
+        <!-- Fly-out panel — opens to the LEFT -->
+        <div class="palette-panel" id="palette-panel" role="listbox"
+             aria-label="Select color palette" hidden>
+          <div class="palette-title">🖌️ Theme Color</div>
+          <div class="palette-swatches">
+            <button class="swatch active" data-palette="blue"    title="Ocean Blue"  aria-label="Ocean Blue"  style="--sw:#4f7ef8;"></button>
+            <button class="swatch"        data-palette="emerald" title="Emerald"     aria-label="Emerald"     style="--sw:#10b981;"></button>
+            <button class="swatch"        data-palette="violet"  title="Violet"      aria-label="Violet"      style="--sw:#8b5cf6;"></button>
+            <button class="swatch"        data-palette="amber"   title="Amber Gold"  aria-label="Amber Gold"  style="--sw:#f59e0b;"></button>
+            <button class="swatch"        data-palette="rose"    title="Rose Red"    aria-label="Rose Red"    style="--sw:#f43f5e;"></button>
+            <button class="swatch"        data-palette="teal"    title="Teal"        aria-label="Teal"        style="--sw:#14b8a6;"></button>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+    <!-- /fab-toolbar -->
+
+
     <div class="app-shell">
+      <div class="bg-dots" aria-hidden="true"></div>
+
+      <!-- ── HEADER ── -->
       <header class="app-header">
         <div class="brand">
           <div class="shield-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
           </div>
           <h1>Plagiarism Detector</h1>
         </div>
-        <p class="subtitle">AI-Powered Plagiarism Detector</p>
+        <p class="subtitle">🎓 AI-Powered Academic Integrity Tool</p>
+        <div class="header-pills">
+          <span class="pill">📄 Text &amp; PDF</span>
+          <span class="pill">🔍 Sentence-Level</span>
+          <span class="pill">📊 Detailed Reports</span>
+        </div>
       </header>
 
       <main class="app-main">
+
         <!-- ── INPUT CARD ── -->
         <section class="card input-card">
+          <div class="card-title-row">
+            <span class="card-title">📝 Student Submission</span>
+          </div>
+
           <form id="detect-form" class="form">
 
-            <!-- Student text -->
-            <div class="input-group">
-              <label for="text" class="field-label">Student Text (Document to check)</label>
-              <div class="textarea-wrapper">
-                <textarea id="text" name="text" class="text-input" rows="8"
-                  placeholder="Paste or type the student's text here..."></textarea>
-                <div class="word-count" id="word-count">0 words | 0 chars</div>
-              </div>
+            <!-- Input mode toggle -->
+            <div class="toggle-group" role="group" aria-label="Input mode">
+              <button type="button" class="toggle-btn active" id="toggle-file-btn" aria-pressed="true">
+                📁 Upload File
+              </button>
+              <button type="button" class="toggle-btn" id="toggle-text-btn" aria-pressed="false">
+                ✏️ Paste Text
+              </button>
             </div>
 
-            <div class="divider"><span>OR UPLOAD</span></div>
-
-            <!-- Student file -->
-            <div class="input-group">
-              <label class="field-label">Student Document (File to check)</label>
-              <div class="file-drop-zone" id="file-drop-zone">
-                <input type="file" id="file-upload" accept=".txt,.pdf" hidden />
-                <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                <p class="drop-text" id="drop-text">Drag & drop a student .txt or .pdf, or <span class="browse-link">browse</span></p>
-                <div class="file-info" id="file-info" style="display:none;">
-                  <span id="file-name" class="file-name">filename.txt</span>
-                  <span id="file-size" class="file-size">(1.2 MB)</span>
-                  <button type="button" id="remove-file" class="remove-file" aria-label="Remove file">×</button>
+            <!-- Panel A: File -->
+            <div id="panel-file" class="input-panel">
+              <div class="input-group">
+                <label class="field-label">📂 Student Document <span class="label-hint">.txt or .pdf</span></label>
+                <div class="file-drop-zone" id="file-drop-zone">
+                  <input type="file" id="file-upload" accept=".txt,.pdf" hidden />
+                  <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24"
+                       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                  <p class="drop-text" id="drop-text">Drag &amp; drop a .txt or .pdf, or <span class="browse-link">browse</span></p>
+                  <div class="file-info" id="file-info" style="display:none;">
+                    <span id="file-name" class="file-name">filename.txt</span>
+                    <span id="file-size" class="file-size">(1.2 MB)</span>
+                    <button type="button" id="remove-file" class="remove-file" aria-label="Remove file">×</button>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div class="divider"><span>AND</span></div>
+            <!-- Panel B: Text -->
+            <div id="panel-text" class="input-panel" hidden>
+              <div class="input-group">
+                <label for="text" class="field-label">✍️ Paste Student Text</label>
+                <div class="textarea-wrapper">
+                  <textarea id="text" name="text" class="text-input" rows="6"
+                    placeholder="Paste or type the student's text here..."></textarea>
+                  <div class="word-count" id="word-count">0 words | 0 chars</div>
+                </div>
+              </div>
+            </div>
 
-            <!-- Reference files — MULTI upload -->
+            <div class="section-sep">
+              <span>📚 Reference Documents <em>(optional)</em></span>
+            </div>
+
+            <!-- Reference files -->
             <div class="input-group">
-              <label class="field-label">Reference Documents (Optional — check against these)</label>
-              <p style="margin:0 0 8px;font-size:0.85em;color:var(--text-muted);">
-                Add one or more .pdf / .txt files. If empty, checks against pre-loaded database.
-              </p>
-              <div class="file-drop-zone" id="ref-drop-zone">
-                <!-- multiple allows picking several files at once -->
+              <label class="field-label">🗂️ Reference Files
+                <span class="label-hint">Leave blank to check against database</span>
+              </label>
+              <div class="file-drop-zone compact-drop" id="ref-drop-zone">
                 <input type="file" id="ref-upload" accept=".txt,.pdf" multiple hidden />
-                <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                <p class="drop-text" id="ref-drop-text">Drag & drop reference files here, or <span class="browse-link">browse</span></p>
-                <!-- List of added reference files rendered here by JS -->
+                <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"
+                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <p class="drop-text" id="ref-drop-text">Add .pdf / .txt reference files, or <span class="browse-link">browse</span></p>
                 <div id="ref-file-list" class="ref-file-list"></div>
               </div>
             </div>
 
             <div class="form-footer">
               <button type="submit" class="primary-button" id="run-button">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                Check Plagiarism
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                🔎 Check Plagiarism
               </button>
               <div class="status-container">
                 <div class="scanner-bar" id="scanner-bar" hidden></div>
@@ -87,56 +186,167 @@
 
         <!-- ── RESULTS CARD ── -->
         <section class="card results-card" id="results-card">
+          <div class="card-title-row">
+            <span class="card-title">📊 Analysis Results</span>
+          </div>
+
           <div id="no-results" class="empty-state">
-            <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.5;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            <div class="empty-icon">🔬</div>
             <p>Run detection to see results here.</p>
+            <p class="empty-hint">Results will display sentence-by-sentence similarity scores.</p>
           </div>
 
           <div id="results-content" class="results-content" hidden>
-
-            <!-- Stats + ring -->
             <div class="score-sticky-header">
               <div class="stats-left">
                 <div class="stat-item">
-                  <span class="stat-label">Total</span>
+                  <span class="stat-label">📋 Total</span>
                   <span class="stat-value" id="summary-total">0</span>
                 </div>
                 <div class="stat-item">
-                  <span class="stat-label" style="color:var(--color-danger);">Copied</span>
+                  <span class="stat-label" style="color:var(--color-danger);">🚨 Copied</span>
                   <span class="stat-value" id="summary-copied" style="color:var(--color-danger);">0</span>
                 </div>
                 <div class="stat-item">
-                  <span class="stat-label" style="color:var(--color-warn);">Paraphrased</span>
+                  <span class="stat-label" style="color:var(--color-warn);">⚠️ Para.</span>
                   <span class="stat-value" id="summary-paraphrased" style="color:var(--color-warn);">0</span>
                 </div>
                 <div class="stat-item">
-                  <span class="stat-label" style="color:var(--color-safe);">Original</span>
+                  <span class="stat-label" style="color:var(--color-safe);">✅ Original</span>
                   <span class="stat-value" id="summary-original" style="color:var(--color-safe);">0</span>
                 </div>
               </div>
               <div class="progress-ring-container">
                 <svg class="progress-ring" width="90" height="90">
                   <circle class="progress-ring-bg" stroke="rgba(255,255,255,0.08)" stroke-width="7" fill="transparent" r="38" cx="45" cy="45"/>
-                  <circle class="progress-ring-circle" id="score-ring" stroke="#3b82f6" stroke-width="7" stroke-linecap="round" fill="transparent" r="38" cx="45" cy="45" stroke-dasharray="238.76" stroke-dashoffset="238.76"/>
+                  <circle class="progress-ring-circle" id="score-ring" stroke="#3b82f6" stroke-width="7"
+                          stroke-linecap="round" fill="transparent" r="38" cx="45" cy="45"
+                          stroke-dasharray="238.76" stroke-dashoffset="238.76"/>
                 </svg>
                 <div class="progress-ring-text" id="score-text">0%</div>
               </div>
             </div>
 
-            <!-- Download Report button — hidden until results arrive -->
             <button id="download-report-btn" class="download-btn" hidden>
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Download Report
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              📥 Download Report
             </button>
 
-            <!-- Sentence cards -->
             <div class="results-list" id="results-list"></div>
-
           </div>
         </section>
       </main>
     </div>
 
     <script src="main.js?v=6"></script>
+
+    <!-- UI control scripts — zero main.js variables touched -->
+    <script>
+    (function () {
+      'use strict';
+
+      /* ─── 1. Input panel toggle ─── */
+      const toggleFileBtn = document.getElementById('toggle-file-btn');
+      const toggleTextBtn = document.getElementById('toggle-text-btn');
+      const panelFile     = document.getElementById('panel-file');
+      const panelText     = document.getElementById('panel-text');
+
+      toggleFileBtn.addEventListener('click', () => {
+        toggleFileBtn.classList.add('active');    toggleFileBtn.setAttribute('aria-pressed', 'true');
+        toggleTextBtn.classList.remove('active'); toggleTextBtn.setAttribute('aria-pressed', 'false');
+        panelFile.hidden = false; panelText.hidden = true;
+        document.getElementById('text').value = '';
+        document.getElementById('text').dispatchEvent(new Event('input'));
+      });
+      toggleTextBtn.addEventListener('click', () => {
+        toggleTextBtn.classList.add('active');    toggleTextBtn.setAttribute('aria-pressed', 'true');
+        toggleFileBtn.classList.remove('active'); toggleFileBtn.setAttribute('aria-pressed', 'false');
+        panelText.hidden = false; panelFile.hidden = true;
+      });
+
+      /* ─── 2. Theme (dark ↔ light) ─── */
+      const html      = document.documentElement;
+      const themeBtn  = document.getElementById('theme-toggle-btn');
+      const themeIcon = document.getElementById('theme-icon');
+
+      function applyTheme(t) {
+        html.setAttribute('data-theme', t);
+        themeIcon.textContent = t === 'dark' ? '🌙' : '☀️';
+        themeBtn.title = t === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode';
+        try { localStorage.setItem('pd-theme', t); } catch(_) {}
+      }
+      themeBtn.addEventListener('click', () =>
+        applyTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+      try { const s = localStorage.getItem('pd-theme'); if (s) applyTheme(s); } catch(_) {}
+
+      /* ─── 3. Font size A+ / A− ─── */
+      const BASE = 15, MIN = 12, MAX = 20;
+      let fs = BASE;
+      try { fs = parseInt(localStorage.getItem('pd-fontsize')) || BASE; } catch(_) {}
+
+      function applyFS(sz) {
+        fs = Math.max(MIN, Math.min(MAX, sz));
+        html.style.fontSize = fs + 'px';
+        document.getElementById('font-dec-btn').disabled = fs <= MIN;
+        document.getElementById('font-inc-btn').disabled = fs >= MAX;
+        try { localStorage.setItem('pd-fontsize', fs); } catch(_) {}
+      }
+      applyFS(fs);
+      document.getElementById('font-inc-btn').addEventListener('click', () => applyFS(fs + 1));
+      document.getElementById('font-dec-btn').addEventListener('click', () => applyFS(fs - 1));
+
+      /* ─── 4. Color palette ─── */
+      const paletteBtn   = document.getElementById('palette-btn');
+      const palettePanel = document.getElementById('palette-panel');
+      const swatches     = document.querySelectorAll('.swatch');
+
+      const PALETTES = {
+        blue:    { accent:'#4f7ef8', glow:'rgba(79,126,248,0.45)',   gold:'#e8a838' },
+        emerald: { accent:'#10b981', glow:'rgba(16,185,129,0.45)',   gold:'#6ee7b7' },
+        violet:  { accent:'#8b5cf6', glow:'rgba(139,92,246,0.45)',   gold:'#c4b5fd' },
+        amber:   { accent:'#f59e0b', glow:'rgba(245,158,11,0.45)',   gold:'#fcd34d' },
+        rose:    { accent:'#f43f5e', glow:'rgba(244,63,94,0.45)',    gold:'#fda4af' },
+        teal:    { accent:'#14b8a6', glow:'rgba(20,184,166,0.45)',   gold:'#5eead4' },
+      };
+
+      function applyPalette(name) {
+        const p = PALETTES[name] || PALETTES.blue;
+        html.setAttribute('data-palette', name);
+        html.style.setProperty('--accent',      p.accent);
+        html.style.setProperty('--accent-glow', p.glow);
+        html.style.setProperty('--accent-gold', p.gold);
+        html.style.setProperty('--gold-glow',   p.glow.replace('0.45', '0.35'));
+        swatches.forEach(s => s.classList.toggle('active', s.dataset.palette === name));
+        try { localStorage.setItem('pd-palette', name); } catch(_) {}
+      }
+
+      paletteBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        const open = !palettePanel.hidden;
+        palettePanel.hidden = open;
+        paletteBtn.setAttribute('aria-expanded', String(!open));
+      });
+      document.addEventListener('click', () => {
+        palettePanel.hidden = true;
+        paletteBtn.setAttribute('aria-expanded', 'false');
+      });
+      palettePanel.addEventListener('click', e => e.stopPropagation());
+
+      swatches.forEach(s => s.addEventListener('click', () => {
+        applyPalette(s.dataset.palette);
+        palettePanel.hidden = true;
+        paletteBtn.setAttribute('aria-expanded', 'false');
+      }));
+
+      try { const s = localStorage.getItem('pd-palette'); if (s && PALETTES[s]) applyPalette(s); } catch(_) {}
+
+    })();
+    </script>
+
   </body>
 </html>
