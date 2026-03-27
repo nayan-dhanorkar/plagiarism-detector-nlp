@@ -176,7 +176,8 @@ Reading books improves creativity. | 0.12 | Original |
 
 - **Niraj Bhakte**
 - **Nayan Dhanorkar**
-
+- **Mitesh Wani**
+- **Maithily Patle**
 ---
 
 ## 📌 Future Improvements
